@@ -1,0 +1,25 @@
+# Credentials (NUNCA commitar)
+credentials.json
+*.json.bak
+
+# Output gerado
+output/
+temp/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml
