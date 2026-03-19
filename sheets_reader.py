@@ -1,5 +1,7 @@
 """Leitor de dados do Google Sheets para o Diagnóstico Tributário."""
 
+import os
+import json
 import gspread
 from google.oauth2.service_account import Credentials
 
@@ -27,9 +29,31 @@ MULTI_ROW_TABS = {
 
 
 def _get_client() -> gspread.Client:
-    """Autentica e retorna o client gspread."""
-    creds = Credentials.from_service_account_file(CREDENTIALS_PATH, scopes=SCOPES)
-    return gspread.authorize(creds)
+    """Autentica e retorna o client gspread.
+
+    Suporta duas fontes de credenciais:
+    1. Streamlit Cloud: st.secrets["google_credentials"] (dict)
+    2. Local: arquivo credentials.json
+    """
+    # Tenta Streamlit secrets primeiro (deploy na nuvem)
+    try:
+        import streamlit as st
+        if "google_credentials" in st.secrets:
+            creds_dict = dict(st.secrets["google_credentials"])
+            creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+            return gspread.authorize(creds)
+    except (ImportError, AttributeError, FileNotFoundError):
+        pass
+
+    # Fallback: arquivo local credentials.json
+    if os.path.isfile(CREDENTIALS_PATH):
+        creds = Credentials.from_service_account_file(CREDENTIALS_PATH, scopes=SCOPES)
+        return gspread.authorize(creds)
+
+    raise FileNotFoundError(
+        "Credenciais não encontradas. Configure st.secrets['google_credentials'] "
+        "ou coloque credentials.json na raiz do projeto."
+    )
 
 
 def _parse_value(value: str):

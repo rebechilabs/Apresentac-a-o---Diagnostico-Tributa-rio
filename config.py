@@ -1,13 +1,21 @@
 """Configurações do Gerador de Diagnóstico Tributário."""
 import os
+import tempfile
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Paths
 TEMPLATE_PATH = os.path.join(BASE_DIR, "Cópia de MODELO DIAGNÓSTICO  2026.pptx")
-OUTPUT_DIR = os.path.join(BASE_DIR, "output")
-TEMP_DIR = os.path.join(BASE_DIR, "temp")
 CREDENTIALS_PATH = os.path.join(BASE_DIR, "credentials.json")
+
+# Diretórios de saída — usa /tmp no cloud (sem permissão de escrita no BASE_DIR)
+_is_cloud = not os.access(BASE_DIR, os.W_OK) or os.environ.get("STREAMLIT_SERVER_PORT")
+if _is_cloud:
+    OUTPUT_DIR = os.path.join(tempfile.gettempdir(), "diagnostico_output")
+    TEMP_DIR = os.path.join(tempfile.gettempdir(), "diagnostico_temp")
+else:
+    OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+    TEMP_DIR = os.path.join(BASE_DIR, "temp")
 
 # Google Sheets
 SPREADSHEET_ID = "1fo-9fk787Cm4mfLZ7nfZBDm1ni_7J2asqyyRAJ9lD4E"

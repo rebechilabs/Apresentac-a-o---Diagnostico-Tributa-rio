@@ -19,20 +19,43 @@ from matplotlib.collections import PatchCollection
 # ---------------------------------------------------------------------------
 # Font registration
 # ---------------------------------------------------------------------------
-_FONT_DIR = os.path.expanduser("~/Library/Fonts")
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_FONT_DIRS = [
+    os.path.join(_BASE_DIR, "fonts"),          # Fontes incluídas no repositório
+    os.path.expanduser("~/Library/Fonts"),      # macOS local
+    "/usr/share/fonts/truetype",                # Linux (Streamlit Cloud)
+]
 
-_montserrat_bold_path = os.path.join(_FONT_DIR, "Montserrat-Bold.ttf")
-_poppins_bold_path = os.path.join(_FONT_DIR, "Poppins-Bold.ttf")
+
+def _find_font(filename: str) -> str:
+    """Procura um arquivo de fonte nos diretórios conhecidos."""
+    for d in _FONT_DIRS:
+        path = os.path.join(d, filename)
+        if os.path.isfile(path):
+            return path
+    return None
+
+
+_montserrat_bold_path = _find_font("Montserrat-Bold.ttf")
+_poppins_bold_path = _find_font("Poppins-Bold.ttf")
 
 for _fpath in (_montserrat_bold_path, _poppins_bold_path):
-    if os.path.isfile(_fpath):
+    if _fpath and os.path.isfile(_fpath):
         fm.fontManager.addfont(_fpath)
 
-_montserrat_bold = fm.FontProperties(fname=_montserrat_bold_path)
-_poppins_bold = fm.FontProperties(fname=_poppins_bold_path)
+if _montserrat_bold_path:
+    _montserrat_bold = fm.FontProperties(fname=_montserrat_bold_path)
+    FONT_MONTSERRAT_BOLD = _montserrat_bold.get_name()
+else:
+    _montserrat_bold = fm.FontProperties(family="sans-serif", weight="bold")
+    FONT_MONTSERRAT_BOLD = "sans-serif"
 
-FONT_MONTSERRAT_BOLD = _montserrat_bold.get_name()
-FONT_POPPINS_BOLD = _poppins_bold.get_name()
+if _poppins_bold_path:
+    _poppins_bold = fm.FontProperties(fname=_poppins_bold_path)
+    FONT_POPPINS_BOLD = _poppins_bold.get_name()
+else:
+    _poppins_bold = fm.FontProperties(family="sans-serif", weight="bold")
+    FONT_POPPINS_BOLD = "sans-serif"
 
 # ---------------------------------------------------------------------------
 # Brand colours
