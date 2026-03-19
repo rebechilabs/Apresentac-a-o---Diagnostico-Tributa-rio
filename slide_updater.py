@@ -571,9 +571,10 @@ def _update_recuperacao_table(slide, data: dict) -> None:
 
 
 def _update_reforma_chart(slide, data: dict, charts: dict) -> None:
-    """Slide 24 (idx 23) - Reforma Tributária com gráfico de barras.
+    """Slide 24 (idx 23) - Reforma Tributária.
 
-    Substitui imagem do gráfico, atualiza valores acima das barras e alíquotas.
+    NÃO substitui gráfico de barras — o template PPTX já tem as barras desenhadas.
+    Apenas atualiza os TextBoxes de valores acima das barras e as alíquotas.
     """
     mapping = SHAPE_MAP.get(23, {})
     reforma = data.get("reforma_tributaria", [])
@@ -584,11 +585,7 @@ def _update_reforma_chart(slide, data: dict, charts: dict) -> None:
 
         field = mapping[shape.name]
 
-        if field == "__bar_chart__":
-            chart_path = charts.get("bar_chart")
-            if chart_path:
-                _replace_image(slide, shape.name, chart_path)
-        elif field == "aliquotas_texto":
+        if field == "aliquotas_texto":
             aliquotas = data.get("indicadores_resumo", {}).get("aliquotas_texto", "")
             if not aliquotas:
                 # Tenta construir a partir de dados da reforma

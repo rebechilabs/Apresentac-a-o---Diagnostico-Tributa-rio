@@ -100,8 +100,7 @@ SHAPE_MAP = {
     20: {  # Slide 21 - Recuperação Tributária (tabela)
         "__table__": "recuperacao_tributaria",
     },
-    23: {  # Slide 24 - Reforma Tributária
-        "Picture 3": "__bar_chart__",
+    23: {  # Slide 24 - Reforma Tributária (sem gráfico matplotlib - template já tem barras)
         "TextBox 13": "aliquotas_texto",
     },
     25: {  # Slide 26 - Síntese do Diagnóstico

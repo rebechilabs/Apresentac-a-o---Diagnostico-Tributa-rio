@@ -28,17 +28,37 @@ def _build_chart_data(raw_data: dict) -> dict:
             except (ValueError, TypeError):
                 return 0.0
 
+        # Mapeamento flexível: tenta chaves da planilha real e fallbacks
+        faturamento = _float("receita_valor") or _float("faturamento")
+        custo_var_pct = _float("custo_variavel_pct") or _float("cmv_pct")
+        imposto_pct = _float("imposto_lucro_pct") or _float("impostos_pct")
+        custo_fixo_pct = _float("custo_fixo_pct") or _float("folha_pct")
+        lucro_pct = _float("lucro_pct")
+
+        # Calcula despesas como o restante (100% - soma dos outros)
+        despesas_pct = _float("despesas_pct")
+        if despesas_pct == 0:
+            soma = custo_var_pct + imposto_pct + custo_fixo_pct + lucro_pct
+            despesas_pct = max(0, 100.0 - soma)
+
+        # Valores monetários
+        custo_var_valor = _float("custo_variavel_valor") or (faturamento * custo_var_pct / 100)
+        imposto_valor = _float("imposto_lucro_valor") or (faturamento * imposto_pct / 100)
+        custo_fixo_valor = _float("custo_fixo_valor") or (faturamento * custo_fixo_pct / 100)
+        lucro_valor = _float("lucro_valor") or (faturamento * lucro_pct / 100)
+        despesas_valor = _float("despesas_valor") or (faturamento * despesas_pct / 100)
+
         chart_data["donut"] = {
-            "cmv_pct": _float("cmv_pct"),
-            "impostos_pct": _float("impostos_pct"),
-            "folha_pct": _float("folha_pct"),
-            "despesas_pct": _float("despesas_pct"),
-            "lucro_pct": _float("lucro_pct"),
-            "cmv_valor": _float("faturamento") * _float("cmv_pct") / 100 if _float("cmv_pct") else 0,
-            "tributos_valor": _float("tributos"),
-            "folha_valor": _float("faturamento") * _float("folha_pct") / 100 if _float("folha_pct") else 0,
-            "despesas_valor": _float("faturamento") * _float("despesas_pct") / 100 if _float("despesas_pct") else 0,
-            "lucro_valor": _float("faturamento") * _float("lucro_pct") / 100 if _float("lucro_pct") else 0,
+            "cmv_pct": custo_var_pct,
+            "impostos_pct": imposto_pct,
+            "folha_pct": custo_fixo_pct,
+            "despesas_pct": despesas_pct,
+            "lucro_pct": lucro_pct,
+            "cmv_valor": custo_var_valor,
+            "tributos_valor": imposto_valor,
+            "folha_valor": custo_fixo_valor,
+            "despesas_valor": despesas_valor,
+            "lucro_valor": lucro_valor,
         }
 
     # Gauge chart — cenários comparativos (primeiro cenário)
