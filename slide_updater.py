@@ -325,7 +325,8 @@ def _update_scenario_slide(slide, scenario_data: dict, slide_idx: int) -> None:
 def _update_fiscal_benefits(slide, data: dict) -> None:
     """Slide 16 (idx 15) - Benefícios Fiscais (mapa do Brasil).
 
-    Procura text boxes contendo siglas de estados e atualiza os valores.
+    Procura text boxes que começam com sigla de estado (ex: "PE - 11% de icms")
+    e atualiza apenas esses shapes. Shapes de título/labels não são alterados.
     """
     beneficios = data.get("beneficios_fiscais", [])
     if not beneficios:
@@ -337,39 +338,57 @@ def _update_fiscal_benefits(slide, data: dict) -> None:
     for item in beneficios:
         estado = item.get("estado", "").strip().upper()
         if estado:
-            # Pega apenas a sigla (primeiras 2 letras se vier "PE - Pernambuco")
             sigla = estado[:2]
             state_lookup[sigla] = item
+
+    # Lista de siglas válidas de estados brasileiros para match seguro
+    _UF_VALIDAS = {
+        "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
+        "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
+        "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+    }
 
     for shape in slide.shapes:
         if not shape.has_text_frame:
             continue
 
         text = shape.text_frame.text.strip()
+        text_upper = text.upper()
 
-        # Verifica se o shape contém uma sigla de estado
-        for sigla, state_data in state_lookup.items():
-            if sigla in text.upper():
-                # Reconstrói o conteúdo com dados atualizados
-                icms_pct = state_data.get("icms_pct", "")
-                lr_aliq1 = state_data.get("lr_aliq1", "")
-                lr_aliq2 = state_data.get("lr_aliq2", "")
-                lp_aliq1 = state_data.get("lp_aliq1", "")
-                lp_aliq2 = state_data.get("lp_aliq2", "")
-
-                # O formato depende do template. Atualizamos o texto completo
-                new_lines = []
-                if icms_pct:
-                    new_lines.append(f"{sigla} - ICMS {icms_pct}")
-                if lr_aliq1 or lr_aliq2:
-                    new_lines.append(f"LR {lr_aliq1}/{lr_aliq2}")
-                if lp_aliq1 or lp_aliq2:
-                    new_lines.append(f"LP {lp_aliq1}/{lp_aliq2}")
-
-                if new_lines:
-                    _replace_multiline_text(shape, "\n".join(new_lines))
-                    logger.info("Benefício fiscal '%s' atualizado.", sigla)
+        # Match seguro: o texto deve COMEÇAR com a sigla do estado
+        # seguida de " -" ou " " (ex: "PE - 11% de icms", "SC - 2 a 3%...")
+        matched_sigla = None
+        for sigla in state_lookup:
+            if sigla in _UF_VALIDAS and (
+                text_upper.startswith(f"{sigla} -") or
+                text_upper.startswith(f"{sigla} ") and len(text_upper) > 3
+            ):
+                matched_sigla = sigla
                 break
+
+        if matched_sigla is None:
+            continue
+
+        state_data = state_lookup[matched_sigla]
+        icms_pct = state_data.get("icms_pct", "")
+        lr_aliq1 = state_data.get("lr_aliq1", "")
+        lr_aliq2 = state_data.get("lr_aliq2", "")
+        lp_aliq1 = state_data.get("lp_aliq1", "")
+        lp_aliq2 = state_data.get("lp_aliq2", "")
+
+        new_lines = []
+        if icms_pct:
+            new_lines.append(f"{matched_sigla} - {icms_pct} de icms")
+        else:
+            new_lines.append(f"{matched_sigla}")
+        if lr_aliq1 or lr_aliq2:
+            new_lines.append(f"LR {lr_aliq1}/{lr_aliq2}")
+        if lp_aliq1 or lp_aliq2:
+            new_lines.append(f"LP {lp_aliq1}/{lp_aliq2}")
+
+        if new_lines:
+            _replace_multiline_text(shape, "\n".join(new_lines))
+            logger.info("Benefício fiscal '%s' atualizado.", matched_sigla)
 
 
 def _update_scenarios_table(slide, data: dict) -> None:
@@ -589,7 +608,7 @@ def _update_reforma_chart(slide, data: dict, charts: dict) -> None:
         if val:
             bar_values.append(str(val))
 
-    bar_textboxes = [f"TextBox {i}" for i in range(4, 10)]  # TextBox 4..9
+    bar_textboxes = [f"TextBox {i}" for i in range(4, 10)] + ["TextBox 14", "TextBox 15"]  # TextBox 4..9 + 14,15
     for shape in slide.shapes:
         if shape.name in bar_textboxes:
             idx = bar_textboxes.index(shape.name)
@@ -601,7 +620,7 @@ def _update_reforma_chart(slide, data: dict, charts: dict) -> None:
 def _update_sintese(slide, data: dict) -> None:
     """Slide 26 (idx 25) - Síntese do Diagnóstico.
 
-    Procura text boxes e substitui conteúdo com dados da síntese.
+    Usa mapeamento direto de shapes por nome para substituir conteúdo.
     """
     sintese = data.get("sintese_diagnostico", {})
     if not sintese:
@@ -610,27 +629,15 @@ def _update_sintese(slide, data: dict) -> None:
 
     mapping = SHAPE_MAP.get(25, {})
 
-    # Para a síntese, fazemos busca textual nos shapes
     for shape in slide.shapes:
-        if not shape.has_text_frame:
+        if shape.name not in mapping:
             continue
 
-        current_text = shape.text_frame.text.strip()
-
-        # Tenta match por conteúdo do shape com campos da síntese
-        for key, value in sintese.items():
-            if key.startswith("_"):
-                continue
-            # Se o texto atual do shape contém a chave ou é um placeholder
-            # reconhecido, substitui
-            if isinstance(value, str) and value:
-                # Verifica se é um shape de badge/parágrafo que precisa update
-                # Usa heurística: se a chave existe como substring no nome do shape
-                # ou se o shape contém texto placeholder
-                if key.lower().replace("_", " ") in current_text.lower():
-                    _replace_multiline_text(shape, value)
-                    logger.info("Síntese: shape atualizado com campo '%s'.", key)
-                    break
+        field = mapping[shape.name]
+        value = sintese.get(field, "")
+        if value:
+            _replace_multiline_text(shape, str(value))
+            logger.info("Síntese: '%s' → campo '%s'", shape.name, field)
 
 
 # ---------------------------------------------------------------------------

@@ -92,7 +92,7 @@ def _is_monetary_key(key: str) -> bool:
 def _is_percentage_key(key: str) -> bool:
     """Verifica se uma chave representa um percentual."""
     pct_keywords = [
-        "pct", "percentual", "aliquota", "alíquota", "%", "taxa", "margem_pct",
+        "pct", "percentual", "aliquota", "alíquota", "aliq", "%", "taxa", "margem_pct",
     ]
     key_lower = key.lower()
     return any(kw in key_lower for kw in pct_keywords)

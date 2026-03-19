@@ -105,7 +105,12 @@ SHAPE_MAP = {
         "TextBox 13": "aliquotas_texto",
     },
     25: {  # Slide 26 - Síntese do Diagnóstico
-        "__sintese__": "sintese_diagnostico",
+        "TextBox 15": "paragrafo_1",
+        "TextBox 16": "paragrafo_2",
+        "TextBox 20": "badge_1",
+        "TextBox 24": "badge_2",
+        "TextBox 28": "badge_3",
+        "TextBox 32": "badge_4",
     },
 }
 
