@@ -230,6 +230,83 @@ def _find_table(slide):
 # Slide-specific updaters
 # ---------------------------------------------------------------------------
 
+def _auto_fit_cover_text(shape, new_text: str) -> None:
+    """Ajusta fonte e espaçamento do nome do cliente para caber no campo da capa.
+
+    O template usa fonte 47pt com letter-spacing 2169 (muito espaçado).
+    Para nomes maiores, reduz proporcionalmente fonte e espaçamento para
+    que o texto caiba na largura fixa do campo.
+    """
+    if not shape.has_text_frame:
+        return
+
+    tf = shape.text_frame
+    runs = tf.paragraphs[0].runs if tf.paragraphs else []
+    if not runs:
+        tf.paragraphs[0].text = str(new_text)
+        return
+
+    run = runs[0]
+
+    # Pega propriedades originais do template
+    orig_size = run.font.size  # ~600202 EMU (47.26pt)
+    orig_text = run.text       # "MODELO DIAGNÓSTICO" = 18 chars
+
+    # Calcula o tamanho original em pontos
+    orig_pt = orig_size / 12700 if orig_size else 47.0
+
+    # Pega o letter-spacing original do XML
+    from lxml.etree import QName
+    rPr = run._r.find(QName("http://schemas.openxmlformats.org/drawingml/2006/main", "rPr"))
+    orig_spc = int(rPr.get("spc", "2169")) if rPr is not None else 2169
+
+    # Calcula proporção: quanto mais longo o texto, menor a fonte
+    orig_len = len(orig_text) if orig_text else 18
+    new_len = len(new_text)
+
+    # O espaço total ocupado é proporcional a: len * (font_size + spacing)
+    # Queremos manter o mesmo espaço total, então:
+    # new_len * (new_size + new_spc) = orig_len * (orig_size + orig_spc)
+    # Mantemos a proporção entre size e spacing
+    if new_len > orig_len:
+        ratio = orig_len / new_len
+        # Aplica um fator de segurança para não ficar apertado demais
+        ratio = max(ratio, 0.35)  # Mínimo 35% do tamanho original
+        new_pt = orig_pt * ratio
+        new_spc = int(orig_spc * ratio)
+    else:
+        # Texto mais curto que o original: mantém tamanho original
+        new_pt = orig_pt
+        new_spc = orig_spc
+
+    # Aplica texto
+    run.text = str(new_text).upper()  # Mantém uppercase como o template
+    for r in runs[1:]:
+        r.text = ""
+
+    # Aplica novo tamanho de fonte
+    run.font.size = Pt(new_pt)
+
+    # Aplica novo letter-spacing via XML
+    if rPr is not None:
+        rPr.set("spc", str(new_spc))
+
+    # Fixa a largura do textbox para não crescer além do slide
+    # Slide widescreen = 13.33 in; deixamos margens de 1.5 in de cada lado
+    max_width = Emu(int(Inches(10.33)))  # ~10.33 polegadas
+    if shape.width > max_width:
+        shape.width = max_width
+
+    # Troca auto_size para NONE (não cresce o box)
+    from pptx.enum.text import MSO_AUTO_SIZE
+    tf.auto_size = MSO_AUTO_SIZE.NONE
+
+    logger.info(
+        "Auto-fit capa: '%s' → font=%.1fpt (era %.1fpt), spc=%d (era %d)",
+        new_text, new_pt, orig_pt, new_spc, orig_spc,
+    )
+
+
 def _update_cover(slide, data: dict) -> None:
     """Slide 1 (idx 0) - Capa: atualiza nome do cliente."""
     mapping = SHAPE_MAP.get(0, {})
@@ -243,7 +320,7 @@ def _update_cover(slide, data: dict) -> None:
             value = dados_gerais.get(field, "")
             logger.info("_update_cover: shape='%s', field='%s', value='%s'", shape.name, field, value)
             if value:
-                _replace_text_in_shape(shape, value)
+                _auto_fit_cover_text(shape, value)
                 logger.info("Capa: '%s' → '%s'", shape.name, value)
             else:
                 logger.warning("Capa: campo '%s' vazio, shape '%s' não atualizado.", field, shape.name)
