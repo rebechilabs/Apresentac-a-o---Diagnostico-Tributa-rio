@@ -293,6 +293,12 @@ def init_julia():
 def generate_presentation(client_name: str) -> tuple:
     """Gera PPTX e PDF. Retorna (pptx_path, pdf_path)."""
     raw_data = read_client_data(client_name)
+
+    # Sobrescreve o nome do cliente com o que a Júlia informou
+    if "dados_gerais" not in raw_data:
+        raw_data["dados_gerais"] = {}
+    raw_data["dados_gerais"]["nome_cliente"] = client_name
+
     chart_data = _build_chart_data(raw_data)
 
     with tempfile.TemporaryDirectory() as temp_dir:
