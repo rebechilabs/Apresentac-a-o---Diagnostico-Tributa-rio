@@ -80,13 +80,6 @@ st.markdown("""
         margin-bottom: 0.5rem;
     }
 
-    /* === Chat input === */
-    [data-testid="stChatInput"] textarea {
-        color: white !important;
-        background-color: rgba(255, 255, 255, 0.08) !important;
-        border-color: rgba(255, 200, 36, 0.3) !important;
-    }
-
     /* === Todos os botões legíveis === */
     .stButton > button,
     [data-testid="stFormSubmitButton"] > button {
@@ -180,6 +173,28 @@ st.markdown("""
     }
     [data-testid="stSidebar"] .stButton > button {
         width: 100% !important;
+    }
+
+    /* === Chat input — fundo claro e texto escuro para legibilidade === */
+    [data-testid="stChatInput"] {
+        background-color: #FFFFFF !important;
+        border-radius: 12px !important;
+    }
+    [data-testid="stChatInput"] textarea {
+        color: #1B2A4A !important;
+        background-color: #FFFFFF !important;
+        border: none !important;
+    }
+    [data-testid="stChatInput"] textarea::placeholder {
+        color: #888 !important;
+    }
+
+    /* === Esconder Manage App e footer === */
+    [data-testid="manage-app-button"],
+    footer, .reportview-container .main footer,
+    #MainMenu {
+        display: none !important;
+        visibility: hidden !important;
     }
 
     /* === Spinner === */
