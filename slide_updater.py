@@ -453,7 +453,17 @@ def _update_passivos(slide, data: dict) -> None:
 
         current_text = shape.text_frame.text.strip().lower()
 
-        if "federal" in current_text and federal_text:
+        # Caso especial: shape contém AMBOS "federal" e "estadual"
+        if "federal" in current_text and "estadual" in current_text:
+            combined_parts = []
+            if federal_text:
+                combined_parts.append(federal_text)
+            if estadual_text:
+                combined_parts.append(estadual_text)
+            if combined_parts:
+                _replace_multiline_text(shape, "\n\n".join(combined_parts))
+                logger.info("Passivos Federal + Estadual atualizados (shape único).")
+        elif "federal" in current_text and federal_text:
             _replace_multiline_text(shape, federal_text)
             logger.info("Passivos Federal atualizado.")
         elif "estadual" in current_text and estadual_text:
@@ -473,9 +483,13 @@ def _update_teses(slide, data: dict) -> None:
         return
 
     # Remove text boxes existentes de teses (mantém shapes de fundo/título)
+    # Shapes protegidos: TextBox 9 (subtítulo), TextBox 10 (título "Teses Tributárias")
+    _PROTECTED_SHAPES = {"TextBox 9", "TextBox 10"}
     shapes_to_remove = []
     for shape in slide.shapes:
         if not shape.has_text_frame:
+            continue
+        if shape.name in _PROTECTED_SHAPES:
             continue
         text = shape.text_frame.text.strip().upper()
         # Heurística: remove shapes que parecem ser teses anteriores
@@ -599,16 +613,22 @@ def _update_reforma_chart(slide, data: dict, charts: dict) -> None:
                 logger.info("Reforma: alíquotas atualizadas.")
 
     # Atualiza text boxes de valores das barras (TextBox 4-9)
+    # TextBox 14 e 15 são duplicatas visuais de TextBox 4 e 5 (mesma posição, outra camada)
     bar_values = []
     for item in reforma:
         val = item.get("valor", item.get("valor_barra", ""))
         if val:
             bar_values.append(str(val))
 
-    bar_textboxes = [f"TextBox {i}" for i in range(4, 10)] + ["TextBox 14", "TextBox 15"]  # TextBox 4..9 + 14,15
+    # Mapeamento: TextBox → índice no bar_values
+    bar_textbox_map = {
+        "TextBox 4": 0, "TextBox 5": 1, "TextBox 6": 2,
+        "TextBox 7": 3, "TextBox 8": 4, "TextBox 9": 5,
+        "TextBox 14": 0, "TextBox 15": 1,  # duplicatas de TextBox 4 e 5
+    }
     for shape in slide.shapes:
-        if shape.name in bar_textboxes:
-            idx = bar_textboxes.index(shape.name)
+        if shape.name in bar_textbox_map:
+            idx = bar_textbox_map[shape.name]
             if idx < len(bar_values):
                 _replace_text_in_shape(shape, bar_values[idx])
                 logger.info("Reforma barra: '%s' → '%s'", shape.name, bar_values[idx])

@@ -64,6 +64,7 @@ SHAPE_MAP = {
         "TextBox 26": "tributos_valor",
         "TextBox 34": "aliquota_efetiva",
         "TextBox 47": "margem_contribuicao_valor",
+        "TextBox 52": "margem_contribuicao_pct",
         "Picture 11": "__donut_chart__",
     },
     4: {  # Slide 5 - Indicadores Resumo (tabela)
@@ -71,11 +72,13 @@ SHAPE_MAP = {
     },
     9: {  # Slide 10 - Cenário 1
         "TextBox 26": "lr_pct",
+        "TextBox 27": "cenario_nome",
         "TextBox 43": "lp_pct",
         "TextBox 47": "diferenca_texto",
     },
     11: {  # Slide 12 - Cenário 2
         "TextBox 26": "lr_pct",
+        "TextBox 27": "cenario_nome",
         "TextBox 43": "lp_pct",
         "TextBox 47": "diferenca_texto",
     },
