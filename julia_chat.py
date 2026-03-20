@@ -290,7 +290,52 @@ def init_julia():
 # Geração da apresentação
 # ---------------------------------------------------------------------------
 
-def generate_presentation(client_name: str) -> tuple:
+# Mapeamento: slide visível → (chave no raw_data, campo)
+# Campos simples ficam em dados_gerais; cenários usam índice na lista.
+_FIELD_TO_DATA = {
+    # Slide 1 - Capa
+    (1, "nome_cliente"): ("dados_gerais", "nome_cliente"),
+    # Slide 3 - Indicadores
+    (3, "faturamento_valor"): ("dados_gerais", "faturamento"),
+    (3, "tributos_valor"): ("dados_gerais", "tributos"),
+    (3, "aliquota_efetiva"): ("dados_gerais", "aliquota_efetiva"),
+    (3, "margem_contribuicao_valor"): ("dados_gerais", "margem_contribuicao"),
+    (3, "margem_contribuicao_pct"): ("dados_gerais", "margem_contribuicao_pct"),
+    # Slide 26 - Síntese
+    (26, "paragrafo_1"): ("sintese_diagnostico", "paragrafo_1"),
+    (26, "paragrafo_2"): ("sintese_diagnostico", "paragrafo_2"),
+    (26, "badge_1"): ("sintese_diagnostico", "badge_1"),
+    (26, "badge_2"): ("sintese_diagnostico", "badge_2"),
+    (26, "badge_3"): ("sintese_diagnostico", "badge_3"),
+    (26, "badge_4"): ("sintese_diagnostico", "badge_4"),
+}
+
+
+def _apply_modifications(raw_data: dict, modifications: list) -> dict:
+    """Aplica modificações da Júlia sobre os dados brutos antes de gerar."""
+    for mod in modifications:
+        slide = mod.get("slide")
+        campo = mod.get("campo")
+        valor = mod.get("valor")
+        if not (slide and campo and valor is not None):
+            continue
+
+        key = (slide, campo)
+        if key in _FIELD_TO_DATA:
+            section, field = _FIELD_TO_DATA[key]
+            if section not in raw_data:
+                raw_data[section] = {}
+            raw_data[section][field] = valor
+        else:
+            # Tenta aplicar diretamente em dados_gerais como fallback
+            if "dados_gerais" not in raw_data:
+                raw_data["dados_gerais"] = {}
+            raw_data["dados_gerais"][campo] = valor
+
+    return raw_data
+
+
+def generate_presentation(client_name: str, modifications: list = None) -> tuple:
     """Gera PPTX e PDF. Retorna (pptx_path, pdf_path)."""
     raw_data = read_client_data(client_name)
 
@@ -298,6 +343,10 @@ def generate_presentation(client_name: str) -> tuple:
     if "dados_gerais" not in raw_data:
         raw_data["dados_gerais"] = {}
     raw_data["dados_gerais"]["nome_cliente"] = client_name
+
+    # Aplica modificações individuais pedidas pela Júlia
+    if modifications:
+        raw_data = _apply_modifications(raw_data, modifications)
 
     chart_data = _build_chart_data(raw_data)
 
@@ -318,9 +367,11 @@ def _handle_generation(action: dict, response: str):
     clean_response = response.split("```json")[0].strip()
     st.markdown(clean_response)
 
+    modifications = action.get("modifications", [])
+
     with st.spinner(f"Gerando apresentação para {client_name}..."):
         try:
-            pptx_path, pdf_path = generate_presentation(client_name)
+            pptx_path, pdf_path = generate_presentation(client_name, modifications)
 
             st.markdown(
                 f"\n\nPronto! A apresentação de **{client_name}** "
