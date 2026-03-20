@@ -52,18 +52,33 @@ st.set_page_config(
 # ---------------------------------------------------------------------------
 
 st.markdown("""
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-    /* === Cores === */
+    /* ============================================================
+       IDENTIDADE VISUAL — Rebechi & Silva Advogados Associados
+       Cores e fontes extraídas do template de apresentação
+       ============================================================ */
+
     :root {
-        --fundo: #1B2A4A;
+        --fundo-escuro: #1B2A4A;
+        --fundo-profundo: #0F1B2E;
         --dourado: #FFC824;
         --dourado-hover: #E6B420;
+        --vermelho: #F07070;
+        --verde: #4CAF50;
         --branco: #FFFFFF;
+        --cinza: #888888;
     }
 
-    /* === Fundo === */
+    /* === Fonte Montserrat em tudo === */
+    html, body, [class*="css"], .stApp,
+    h1, h2, h3, h4, p, span, label, input, textarea, button, a {
+        font-family: 'Montserrat', sans-serif !important;
+    }
+
+    /* === Fundo gradiente navy === */
     .stApp {
-        background: linear-gradient(135deg, #0F1B2E 0%, #1B2A4A 50%, #1F3055 100%);
+        background: linear-gradient(160deg, var(--fundo-profundo) 0%, var(--fundo-escuro) 40%, #1F3055 100%);
     }
 
     /* === Texto geral branco === */
@@ -72,134 +87,203 @@ st.markdown("""
         color: var(--branco) !important;
     }
 
-    /* === Chat messages === */
+    /* === Chat messages — vidro escuro com borda dourada sutil === */
     [data-testid="stChatMessage"] {
-        background-color: rgba(255, 255, 255, 0.06) !important;
-        border: 1px solid rgba(255, 200, 36, 0.2);
-        border-radius: 12px;
-        margin-bottom: 0.5rem;
+        background: rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 200, 36, 0.15);
+        border-radius: 14px;
+        margin-bottom: 0.6rem;
+        padding: 1rem 1.2rem !important;
+    }
+    [data-testid="stChatMessage"] p {
+        font-size: 0.95rem;
+        line-height: 1.6;
     }
 
-    /* === Todos os botões legíveis === */
+    /* === Botões — dourado Rebechi com texto navy === */
     .stButton > button,
     [data-testid="stFormSubmitButton"] > button {
-        background-color: #FFC824 !important;
-        color: #1B2A4A !important;
+        background: linear-gradient(135deg, #FFC824, #E6B420) !important;
+        color: var(--fundo-escuro) !important;
         font-weight: 700 !important;
         border: none !important;
-        border-radius: 8px !important;
-        padding: 0.6rem 2rem !important;
+        border-radius: 10px !important;
+        padding: 0.65rem 2rem !important;
         font-size: 1rem !important;
         cursor: pointer !important;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 8px rgba(255, 200, 36, 0.3);
+        transition: all 0.2s ease;
     }
     .stButton > button:hover,
     [data-testid="stFormSubmitButton"] > button:hover {
-        background-color: #E6B420 !important;
-        color: #1B2A4A !important;
+        background: linear-gradient(135deg, #E6B420, #D4A41C) !important;
+        color: var(--fundo-escuro) !important;
+        box-shadow: 0 4px 14px rgba(255, 200, 36, 0.4);
+        transform: translateY(-1px);
     }
 
     /* === Botões de download === */
     .stDownloadButton > button {
-        background-color: #FFC824 !important;
-        color: #1B2A4A !important;
+        background: linear-gradient(135deg, #FFC824, #E6B420) !important;
+        color: var(--fundo-escuro) !important;
         font-weight: 700 !important;
         border: none !important;
-        border-radius: 8px !important;
-        padding: 0.6rem 2rem !important;
+        border-radius: 10px !important;
+        padding: 0.65rem 2rem !important;
         font-size: 1rem !important;
-        min-height: 45px !important;
+        min-height: 48px !important;
+        box-shadow: 0 2px 8px rgba(255, 200, 36, 0.3);
     }
     .stDownloadButton > button:hover {
-        background-color: #E6B420 !important;
+        background: linear-gradient(135deg, #E6B420, #D4A41C) !important;
+        box-shadow: 0 4px 14px rgba(255, 200, 36, 0.4);
     }
 
-    /* === Inputs de texto === */
+    /* === Inputs de texto — login === */
     .stTextInput input {
-        color: white !important;
-        background-color: rgba(255, 255, 255, 0.08) !important;
-        border-color: rgba(255, 200, 36, 0.3) !important;
-        border-radius: 8px !important;
+        color: var(--branco) !important;
+        background-color: rgba(255, 255, 255, 0.07) !important;
+        border: 1px solid rgba(255, 200, 36, 0.25) !important;
+        border-radius: 10px !important;
+        padding: 0.7rem 1rem !important;
+        font-size: 0.95rem !important;
+    }
+    .stTextInput input:focus {
+        border-color: var(--dourado) !important;
+        box-shadow: 0 0 0 2px rgba(255, 200, 36, 0.15) !important;
+    }
+    .stTextInput input::placeholder {
+        color: rgba(255,255,255,0.35) !important;
     }
 
     /* === Header com logo === */
     .julia-header {
         text-align: center;
-        padding: 1rem 0;
+        padding: 1.5rem 0 1rem;
     }
     .julia-header img {
-        max-width: 180px;
-        margin-bottom: 0.5rem;
+        max-width: 200px;
+        margin-bottom: 0.8rem;
     }
     .julia-header h1 {
-        color: #FFC824 !important;
-        font-size: 1.8rem;
+        color: var(--dourado) !important;
+        font-family: 'Montserrat', sans-serif !important;
+        font-weight: 800 !important;
+        font-size: 2rem;
         margin-bottom: 0.2rem;
-        letter-spacing: 1px;
+        letter-spacing: 1.5px;
     }
     .julia-header .subtitle {
-        color: rgba(255,255,255,0.6) !important;
+        color: rgba(255,255,255,0.5) !important;
         font-size: 0.85rem;
+        font-weight: 400;
         margin-top: 0;
+        letter-spacing: 0.5px;
     }
 
-    /* === Login container === */
+    /* === Login container — vidro com borda dourada === */
     .login-box {
-        max-width: 420px;
+        max-width: 440px;
         margin: 3rem auto;
-        padding: 2.5rem;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,200,36,0.25);
-        border-radius: 16px;
+        padding: 2.5rem 2rem;
+        background: rgba(255,255,255,0.04);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,200,36,0.2);
+        border-radius: 20px;
         text-align: center;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
     .login-box img {
         max-width: 200px;
-        margin-bottom: 1rem;
+        margin-bottom: 1.2rem;
     }
     .login-box h2 {
-        color: #FFC824 !important;
-        font-size: 1.4rem;
+        color: var(--dourado) !important;
+        font-weight: 700 !important;
+        font-size: 1.5rem;
         margin-bottom: 0.3rem;
     }
     .login-box .sub {
-        color: rgba(255,255,255,0.5) !important;
+        color: rgba(255,255,255,0.45) !important;
         font-size: 0.8rem;
         margin-bottom: 1.5rem;
     }
 
-    /* === Sidebar === */
+    /* === Sidebar — navy profundo === */
     [data-testid="stSidebar"] {
-        background-color: #0F1B2E !important;
+        background: linear-gradient(180deg, var(--fundo-profundo), #0A1220) !important;
+        border-right: 1px solid rgba(255,200,36,0.1);
     }
     [data-testid="stSidebar"] .stButton > button {
         width: 100% !important;
     }
 
-    /* === Chat input — fundo claro e texto escuro para legibilidade === */
+    /* === Chat input — fundo branco, texto escuro para legibilidade === */
     [data-testid="stChatInput"] {
-        background-color: #FFFFFF !important;
-        border-radius: 12px !important;
+        background-color: var(--branco) !important;
+        border-radius: 14px !important;
+        border: 2px solid rgba(255, 200, 36, 0.3) !important;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.2);
     }
     [data-testid="stChatInput"] textarea {
-        color: #1B2A4A !important;
-        background-color: #FFFFFF !important;
+        color: var(--fundo-escuro) !important;
+        background-color: var(--branco) !important;
         border: none !important;
+        font-size: 0.95rem !important;
     }
     [data-testid="stChatInput"] textarea::placeholder {
-        color: #888 !important;
+        color: #999 !important;
+    }
+    /* Botão de enviar no chat input */
+    [data-testid="stChatInput"] button {
+        background-color: var(--dourado) !important;
+        border-radius: 50% !important;
+    }
+    [data-testid="stChatInput"] button svg {
+        fill: var(--fundo-escuro) !important;
     }
 
-    /* === Esconder Manage App e footer === */
+    /* === ESCONDER Manage App, footer, menu hamburger === */
     [data-testid="manage-app-button"],
-    footer, .reportview-container .main footer,
-    #MainMenu {
+    ._profileContainer_gzau3_53,
+    [data-testid="stStatusWidget"],
+    footer,
+    .reportview-container .main footer,
+    #MainMenu,
+    header[data-testid="stHeader"],
+    .stDeployButton {
         display: none !important;
         visibility: hidden !important;
+        height: 0 !important;
+        position: fixed !important;
+        z-index: -9999 !important;
     }
 
-    /* === Spinner === */
+    /* === Spinner dourado === */
     .stSpinner > div {
-        border-top-color: #FFC824 !important;
+        border-top-color: var(--dourado) !important;
+    }
+
+    /* === Divider na sidebar === */
+    [data-testid="stSidebar"] hr {
+        border-color: rgba(255,200,36,0.15) !important;
+    }
+
+    /* === Scrollbar estilizada === */
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: var(--fundo-profundo);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: rgba(255,200,36,0.3);
+        border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255,200,36,0.5);
     }
 </style>
 """, unsafe_allow_html=True)
