@@ -246,25 +246,43 @@ st.markdown("""
         fill: var(--fundo-escuro) !important;
     }
 
-    /* === ESCONDER Manage App, footer, menu hamburger === */
+    /* === ESCONDER Manage App, footer, toolbar, menu === */
     [data-testid="manage-app-button"],
-    [class*="_profileContainer"],
-    [class*="profileContainer"],
     [data-testid="stStatusWidget"],
     [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    [data-testid="stHeader"],
+    [data-testid="stActionButton"],
+    [class*="_profileContainer"],
+    [class*="profileContainer"],
+    [class*="StatusWidget"],
+    [class*="stToolbar"],
+    [class*="manage-app"],
+    .stDeployButton,
+    .stAppDeployButton,
     footer,
     .reportview-container .main footer,
     #MainMenu,
-    header[data-testid="stHeader"],
-    .stDeployButton,
-    .stAppDeployButton,
-    [data-testid="stDecoration"] {
+    header {
         display: none !important;
         visibility: hidden !important;
         height: 0 !important;
+        width: 0 !important;
         overflow: hidden !important;
         position: fixed !important;
+        top: -9999px !important;
+        left: -9999px !important;
         z-index: -9999 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
+    /* Força o conteúdo principal a ocupar toda a tela */
+    .stApp > header {
+        display: none !important;
+    }
+    .stApp [data-testid="stBottom"] > div {
+        /* Garante que apenas o chat input fica no bottom, sem toolbar */
     }
 
     /* === Spinner dourado === */
