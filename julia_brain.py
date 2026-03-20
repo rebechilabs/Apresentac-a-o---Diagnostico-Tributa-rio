@@ -12,13 +12,13 @@ import anthropic
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT_TEMPLATE = """Você é a Júlia, assistente de marketing do escritório Rebechi & Silva Advogados Associados.
+_SYSTEM_PROMPT_BASE = """Você é a Júlia, assistente de marketing do escritório Rebechi & Silva Advogados Associados.
 
-O usuário logado é: {user_name} ({user_email}).
+O usuário logado é: __USER_NAME__ (__USER_EMAIL__).
 
 PERSONALIDADE:
 - Profissional, simpática e objetiva
-- SEMPRE chame o usuário pelo nome ({user_name}) no início da conversa e sempre que apropriado
+- SEMPRE chame o usuário pelo nome (__USER_NAME__) no início da conversa e sempre que apropriado
 - Trata todos como "Dr." ou "Dra."
 - Usa linguagem formal mas acolhedora
 - Nunca usa emojis em excesso (máximo 1 por mensagem)
@@ -56,6 +56,11 @@ REGRAS:
 
 IMPORTANTE: O JSON deve estar entre marcadores ```json e ```. Todo o resto da mensagem pode ser texto normal."""
 
+
+def _build_system_prompt(user_name: str, user_email: str) -> str:
+    """Build system prompt replacing placeholders (avoids .format() KeyError on JSON braces)."""
+    return _SYSTEM_PROMPT_BASE.replace("__USER_NAME__", user_name).replace("__USER_EMAIL__", user_email)
+
 # Mapeamento de campos por slide (para ajudar o Claude a estruturar)
 SLIDE_FIELDS = {
     1: ["nome_cliente"],
@@ -88,7 +93,7 @@ class JuliaBrain:
         self.model = model
         self.user_name = user_name
         self.user_email = user_email
-        self.system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+        self.system_prompt = _build_system_prompt(
             user_name=user_name or "usuário",
             user_email=user_email or "",
         )
