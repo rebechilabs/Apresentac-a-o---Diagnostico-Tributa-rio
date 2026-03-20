@@ -233,19 +233,27 @@ def _find_table(slide):
 def _update_cover(slide, data: dict) -> None:
     """Slide 1 (idx 0) - Capa: atualiza nome do cliente."""
     mapping = SHAPE_MAP.get(0, {})
+    dados_gerais = data.get("dados_gerais", {})
+    logger.info("_update_cover: dados_gerais keys = %s", list(dados_gerais.keys()))
+    logger.info("_update_cover: nome_cliente = '%s'", dados_gerais.get("nome_cliente", "<AUSENTE>"))
+
     for shape in slide.shapes:
         if shape.name in mapping:
             field = mapping[shape.name]
-            value = data.get("dados_gerais", {}).get(field, "")
+            value = dados_gerais.get(field, "")
+            logger.info("_update_cover: shape='%s', field='%s', value='%s'", shape.name, field, value)
             if value:
                 _replace_text_in_shape(shape, value)
                 logger.info("Capa: '%s' → '%s'", shape.name, value)
+            else:
+                logger.warning("Capa: campo '%s' vazio, shape '%s' não atualizado.", field, shape.name)
 
 
 def _update_indicators(slide, data: dict, charts: dict) -> None:
     """Slide 3 (idx 2) - Indicadores com gráfico donut."""
     mapping = SHAPE_MAP.get(2, {})
     indicadores = data.get("indicadores_resumo", {})
+    dados_gerais = data.get("dados_gerais", {})
 
     for shape in slide.shapes:
         if shape.name not in mapping:
@@ -258,7 +266,10 @@ def _update_indicators(slide, data: dict, charts: dict) -> None:
             if chart_path:
                 _replace_image(slide, shape.name, chart_path)
         else:
+            # Tenta indicadores_resumo primeiro, depois dados_gerais como fallback
             value = indicadores.get(field, "")
+            if value == "":
+                value = dados_gerais.get(field, "")
             if value != "":
                 _replace_text_in_shape(shape, value)
                 logger.info("Indicadores: '%s' → '%s'", shape.name, value)

@@ -13,13 +13,14 @@ import streamlit as st
 
 from julia_brain import JuliaBrain
 from config import OUTPUT_DIR
-from sheets_reader import list_clients, read_client_data
+from sheets_reader import read_client_data
 from data_processor import process_data
 from chart_generator import generate_all_charts
 from slide_updater import update_presentation
 from pdf_converter import convert_to_pdf
 from main import _build_chart_data
 
+logging.basicConfig(level=logging.INFO, format="%(name)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -247,16 +248,21 @@ st.markdown("""
 
     /* === ESCONDER Manage App, footer, menu hamburger === */
     [data-testid="manage-app-button"],
-    ._profileContainer_gzau3_53,
+    [class*="_profileContainer"],
+    [class*="profileContainer"],
     [data-testid="stStatusWidget"],
+    [data-testid="stToolbar"],
     footer,
     .reportview-container .main footer,
     #MainMenu,
     header[data-testid="stHeader"],
-    .stDeployButton {
+    .stDeployButton,
+    .stAppDeployButton,
+    [data-testid="stDecoration"] {
         display: none !important;
         visibility: hidden !important;
         height: 0 !important;
+        overflow: hidden !important;
         position: fixed !important;
         z-index: -9999 !important;
     }
@@ -379,12 +385,48 @@ def init_julia():
 _FIELD_TO_DATA = {
     # Slide 1 - Capa
     (1, "nome_cliente"): ("dados_gerais", "nome_cliente"),
-    # Slide 3 - Indicadores
-    (3, "faturamento_valor"): ("dados_gerais", "faturamento"),
-    (3, "tributos_valor"): ("dados_gerais", "tributos"),
-    (3, "aliquota_efetiva"): ("dados_gerais", "aliquota_efetiva"),
-    (3, "margem_contribuicao_valor"): ("dados_gerais", "margem_contribuicao"),
-    (3, "margem_contribuicao_pct"): ("dados_gerais", "margem_contribuicao_pct"),
+
+    # Slide 3 - Indicadores (slide_updater lê de indicadores_resumo)
+    (3, "faturamento_valor"): ("indicadores_resumo", "faturamento_valor"),
+    (3, "tributos_valor"): ("indicadores_resumo", "tributos_valor"),
+    (3, "aliquota_efetiva"): ("indicadores_resumo", "aliquota_efetiva"),
+    (3, "margem_contribuicao_valor"): ("indicadores_resumo", "margem_contribuicao_valor"),
+    (3, "margem_contribuicao_pct"): ("indicadores_resumo", "margem_contribuicao_pct"),
+
+    # Slide 5 - Tabela de indicadores (slide_updater lê de indicadores_resumo)
+    (5, "receita_valor"): ("indicadores_resumo", "receita_valor"),
+    (5, "receita_pct"): ("indicadores_resumo", "receita_pct"),
+    (5, "custo_variavel_valor"): ("indicadores_resumo", "custo_variavel_valor"),
+    (5, "custo_variavel_pct"): ("indicadores_resumo", "custo_variavel_pct"),
+    (5, "custo_fixo_valor"): ("indicadores_resumo", "custo_fixo_valor"),
+    (5, "custo_fixo_pct"): ("indicadores_resumo", "custo_fixo_pct"),
+    (5, "imposto_lucro_valor"): ("indicadores_resumo", "imposto_lucro_valor"),
+    (5, "imposto_lucro_pct"): ("indicadores_resumo", "imposto_lucro_pct"),
+    (5, "lucro_valor"): ("indicadores_resumo", "lucro_valor"),
+    (5, "lucro_pct"): ("indicadores_resumo", "lucro_pct"),
+
+    # Slides 10, 12, 14 - Cenários comparativos
+    # Estes são tratados via _apply_scenario_modification (ver abaixo)
+    (10, "lr_pct"): ("__cenario__", 0),
+    (10, "lp_pct"): ("__cenario__", 0),
+    (10, "diferenca_texto"): ("__cenario__", 0),
+    (10, "cenario_nome"): ("__cenario__", 0),
+    (12, "lr_pct"): ("__cenario__", 1),
+    (12, "lp_pct"): ("__cenario__", 1),
+    (12, "diferenca_texto"): ("__cenario__", 1),
+    (12, "cenario_nome"): ("__cenario__", 1),
+    (14, "lr_pct"): ("__cenario__", 2),
+    (14, "lp_pct"): ("__cenario__", 2),
+    (14, "diferenca_texto"): ("__cenario__", 2),
+    (14, "cenario_nome"): ("__cenario__", 2),
+
+    # Slide 19 - Gestão de Passivos
+    (19, "federal"): ("gestao_passivos", "federal"),
+    (19, "estadual"): ("gestao_passivos", "estadual"),
+
+    # Slide 24 - Reforma Tributária
+    (24, "aliquotas_texto"): ("indicadores_resumo", "aliquotas_texto"),
+
     # Slide 26 - Síntese
     (26, "paragrafo_1"): ("sintese_diagnostico", "paragrafo_1"),
     (26, "paragrafo_2"): ("sintese_diagnostico", "paragrafo_2"),
@@ -402,34 +444,55 @@ def _apply_modifications(raw_data: dict, modifications: list) -> dict:
         campo = mod.get("campo")
         valor = mod.get("valor")
         if not (slide and campo and valor is not None):
+            logger.warning("Modificação ignorada (dados incompletos): %s", mod)
             continue
+
+        logger.info("Aplicando: slide=%s, campo='%s', valor='%s'", slide, campo, valor)
 
         key = (slide, campo)
         if key in _FIELD_TO_DATA:
-            section, field = _FIELD_TO_DATA[key]
-            if section not in raw_data:
-                raw_data[section] = {}
-            raw_data[section][field] = valor
+            section, field_or_idx = _FIELD_TO_DATA[key]
+
+            if section == "__cenario__":
+                # Cenários comparativos: field_or_idx é o índice na lista
+                idx = field_or_idx
+                if "cenarios_comparativos" not in raw_data:
+                    raw_data["cenarios_comparativos"] = []
+                # Garante que a lista tem elementos suficientes
+                while len(raw_data["cenarios_comparativos"]) <= idx:
+                    raw_data["cenarios_comparativos"].append({})
+                raw_data["cenarios_comparativos"][idx][campo] = valor
+                logger.info("  → cenarios_comparativos[%d]['%s'] = '%s'", idx, campo, valor)
+            else:
+                if section not in raw_data:
+                    raw_data[section] = {}
+                raw_data[section][field_or_idx] = valor
+                logger.info("  → %s['%s'] = '%s'", section, field_or_idx, valor)
         else:
             # Tenta aplicar diretamente em dados_gerais como fallback
             if "dados_gerais" not in raw_data:
                 raw_data["dados_gerais"] = {}
             raw_data["dados_gerais"][campo] = valor
+            logger.info("  → dados_gerais['%s'] = '%s' (fallback)", campo, valor)
 
     return raw_data
 
 
 def generate_presentation(client_name: str, modifications: list = None) -> tuple:
     """Gera PPTX e PDF. Retorna (pptx_path, pdf_path)."""
+    logger.info("=== Gerando apresentação para: '%s' ===", client_name)
+
     raw_data = read_client_data(client_name)
 
     # Sobrescreve o nome do cliente com o que a Júlia informou
     if "dados_gerais" not in raw_data:
         raw_data["dados_gerais"] = {}
     raw_data["dados_gerais"]["nome_cliente"] = client_name
+    logger.info("nome_cliente definido como: '%s'", client_name)
 
     # Aplica modificações individuais pedidas pela Júlia
     if modifications:
+        logger.info("Aplicando %d modificações", len(modifications))
         raw_data = _apply_modifications(raw_data, modifications)
 
     chart_data = _build_chart_data(raw_data)
@@ -437,6 +500,14 @@ def generate_presentation(client_name: str, modifications: list = None) -> tuple
     with tempfile.TemporaryDirectory() as temp_dir:
         charts = generate_all_charts(chart_data, temp_dir)
         processed = process_data(raw_data)
+
+        # Garante que nome_cliente sobrevive ao processamento
+        if "dados_gerais" not in processed:
+            processed["dados_gerais"] = {}
+        processed["dados_gerais"]["nome_cliente"] = client_name
+        logger.info("nome_cliente pós-processamento: '%s'",
+                     processed.get("dados_gerais", {}).get("nome_cliente", "???"))
+
         safe_name = client_name.replace(" ", "_").replace("/", "_")
         pptx_path = os.path.join(OUTPUT_DIR, f"Diagnostico_{safe_name}.pptx")
         update_presentation(processed, charts, pptx_path)
@@ -447,7 +518,9 @@ def generate_presentation(client_name: str, modifications: list = None) -> tuple
 
 def _handle_generation(action: dict, response: str):
     """Executa geração e mostra botões de download."""
-    client_name = action.get("client_name", "Cliente")
+    client_name = action.get("client_name") or "Cliente"
+    logger.info("_handle_generation: action=%s", action)
+    logger.info("_handle_generation: client_name='%s'", client_name)
     clean_response = response.split("```json")[0].strip()
     st.markdown(clean_response)
 
